@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
             "profile",
             "https://www.googleapis.com/auth/gmail.readonly",
             "https://www.googleapis.com/auth/gmail.send",
-            "https://www.googleapis.com/auth/calendar.readonly",
+            "https://www.googleapis.com/auth/calendar",
           ].join(" "),
           access_type: "offline",
           prompt: "consent",

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/src/lib/supabase'
+import { getSupabaseWithAuth } from '@/src/lib/supabase-server'
 import { authOptions } from '../auth/[...nextauth]/route'
 
 export async function GET() {
@@ -10,6 +10,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const supabase = getSupabaseWithAuth(session.user?.email || '') 
+  
   const userId = session.user?.email || ''
 
   const { data: jobs, error } = await supabase

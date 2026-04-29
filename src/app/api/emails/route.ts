@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { fetchRecruiterEmails, isLikelyJobEmail } from '@/src/lib/gmail'
 import { parseEmail } from '@/src/lib/send-to-claude'
-import { supabase } from '@/src/lib/supabase'
+import { getSupabaseWithAuth } from '@/src/lib/supabase-server'
 import { authOptions } from '../auth/[...nextauth]/route'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -13,7 +13,8 @@ export async function GET() {
   if (!session?.accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
+  const supabase = getSupabaseWithAuth(session.user?.email || '') 
+  
   const userId = session.user?.email || 'temp-user'
 
   try {
