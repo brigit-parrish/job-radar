@@ -105,6 +105,7 @@ The Zillow Recruiting Team`
           body: email.body.slice(0, 5000),
           received_at: new Date(email.date).toISOString(),
           ai_summary: parsed.summary,
+          suggested_reply: parsed.suggestedReply
         })
       }
 

@@ -47,11 +47,11 @@ export default function Home() {
   }, [session]);
 
   async function fetchJobs() {
-    setLoading(true);
-    const res = await fetch("/api/jobs");
-    const data = await res.json();
-    setJobs(data.jobs || []);
-    setLoading(false);
+    if (!selectedJob) setLoading(true)
+    const res = await fetch("/api/jobs")
+    const data = await res.json()
+    setJobs(data.jobs || [])
+    if (!selectedJob) setLoading(false)
   }
 
   async function fetchJobEmails(jobId: string) {
@@ -62,14 +62,18 @@ export default function Home() {
   }
 
   async function syncEmails() {
-    setSyncing(true);
-    fetch("/api/emails");
-    const interval = setInterval(fetchJobs, 5000);
-    setTimeout(() => {
-      clearInterval(interval);
-      setSyncing(false);
-      fetchJobs();
-    }, 60000);
+    setSyncing(true)
+    fetch("/api/emails")
+    
+    let count = 0
+    const interval = setInterval(async () => {
+      count++
+      await fetchJobs()
+      if (count >= 12) { 
+        clearInterval(interval)
+        setSyncing(false)
+      }
+    }, 5000)
   }
 
   function openJob(job: Job) {
@@ -325,17 +329,125 @@ export default function Home() {
                 >
                   <span>✉</span> Suggested Reply
                 </button>
-
                 {showReply && (
-                  <div style={{ background: "#2a2a2d", borderRadius: "12px", padding: "16px" }}>
-                    <p style={{ fontSize: "0.8rem", color: "#ccc", lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>{latestEmail.suggested_reply}</p>
+                  <div style={{ background: "#2a2a2d", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                    
+                    {/* TO FIELD */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.65rem", fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>To</label>
+                      <input
+                        id="reply-to"
+                        defaultValue={latestEmail.from_email}
+                        style={{
+                          background: "#1a1a1d",
+                          color: "#ccc",
+                          border: "1px solid #3a3a3e",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          fontSize: "0.8rem",
+                          fontFamily: "inherit",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    {/* SUBJECT FIELD */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.65rem", fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>Subject</label>
+                      <input
+                        id="reply-subject"
+                        defaultValue={`Re: ${latestEmail.subject}`}
+                        style={{
+                          background: "#1a1a1d",
+                          color: "#ccc",
+                          border: "1px solid #3a3a3e",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          fontSize: "0.8rem",
+                          fontFamily: "inherit",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    {/* FROM FIELD - read only */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.65rem", fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>From</label>
+                      <input
+                        value={session.user?.email || ''}
+                        readOnly
+                        style={{
+                          background: "#111",
+                          color: "#555",
+                          border: "1px solid #2a2a2d",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          fontSize: "0.8rem",
+                          fontFamily: "inherit",
+                          width: "100%",
+                          boxSizing: "border-box",
+                          cursor: "not-allowed",
+                        }}
+                      />
+                    </div>
+
+                    {/* DIVIDER */}
+                    <div style={{ borderTop: "1px solid #3a3a3e" }} />
+
+                    {/* BODY */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.65rem", fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.1em" }}>Message</label>
+                      <textarea
+                        id="reply-body"
+                        defaultValue={latestEmail.suggested_reply}
+                        rows={10}
+                        style={{
+                          width: "100%",
+                          background: "#1a1a1d",
+                          color: "#ccc",
+                          border: "1px solid #3a3a3e",
+                          borderRadius: "8px",
+                          padding: "12px",
+                          fontSize: "0.8rem",
+                          lineHeight: 1.7,
+                          resize: "vertical",
+                          fontFamily: "inherit",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+
+                    {/* SEND BUTTON */}
                     <button
-                      style={{ marginTop: "12px", width: "100%", padding: "10px", borderRadius: "8px", background: "#4ade80", color: "#000", border: "none", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
+                      onClick={async () => {
+                        if (!latestEmail) return
+                        const to = (document.getElementById('reply-to') as HTMLInputElement).value
+                        const subject = (document.getElementById('reply-subject') as HTMLInputElement).value
+                        const body = (document.getElementById('reply-body') as HTMLTextAreaElement).value
+
+                        const res = await fetch('/api/reply', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ to, subject, body }),
+                        })
+                        const data = await res.json()
+                        if (data.success) {
+                          alert('Reply sent!')
+                          setShowReply(false)
+                        } else {
+                          alert('Failed to send reply')
+                        }
+                      }}
+                      style={{ width: "100%", padding: "10px", borderRadius: "8px", background: "#4ade80", color: "#000", border: "none", fontWeight: 600, fontSize: "0.8rem", cursor: "pointer" }}
                     >
                       Send Reply
                     </button>
                   </div>
                 )}
+                
+
               </>
             )}
 
